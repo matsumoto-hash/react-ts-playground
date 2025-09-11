@@ -1,52 +1,42 @@
-import { useState } from 'react'
-import './App.css'
+import { useState, useEffect } from "react";
+import type { Todo } from "./types.d";
+import TodoForm from "./components/TodoForm";
+import TodoList from "./components/TodoList";
 
-interface Todo {
-  text: string;
-  completed: boolean;
-}
+function App() {
+  const [todos, setTodos] = useState<Todo[]>(() => {
+    const stored = localStorage.getItem("todos");
+    return stored ? JSON.parse(stored, (key, value) => {
+      if (key === "deadline" && value) return new Date(value);
+      return value;
+    }) : [];
+  });
 
-const App: React.FC = () => {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [input, setInput] = useState<string>("");
+  useEffect(() => {
+    localStorage.setItem("todos", JSON.stringify(todos));
+  }, [todos]);
 
-  const addTodo = () => {
-    if (input.trim() === "") return;
-    setTodos([...todos, { text: input, completed: false }]);
-    setInput("");
+  const addTodo = (todo: Todo) => {
+    setTodos((prev) => [...prev, todo]);
   };
 
-  const toggleComplete = (index: number) => {
-    const newTodos = [...todos];
-    newTodos[index].completed = !newTodos[index].completed;
-    setTodos(newTodos);
+  const toggleTodo = (id: string) => {
+    setTodos((prev) =>
+      prev.map((t) =>
+        t.id === id ? {...t, completed: !t.completed } : t
+      )
+    )
   };
 
-  const deleteTodo = (index: number) => {
-    setTodos(todos.filter((_, i) => i !== index));
+  const deleteTodo = (id: string) => {
+    setTodos((prev) => prev.filter((t) => t.id !== id));
   };
 
   return (
-    <div style={{ padding: "20px"}}>
-    <h1>React Todo App</h1>
-    <input
-      value={input}
-      onChange={(e) => setInput(e.target.value)}
-      placeholder="タスクを入力"
-      />
-      <button onClick={addTodo}>追加</button>
-
-      <ul>
-        {todos.map((todos, index) => (
-          <li key={index} style={{ textDecoration: todos.completed ? "line-through" : ""}}>
-            {todos.text}
-            <button onClick={() => toggleComplete(index)}>
-              {todos.completed ? "戻す" : "完了"}  
-            </button>
-            <button onClick={() => deleteTodo(index)}>削除</button>
-          </li>
-        ))}
-      </ul>
+    <div style={{ maxWidth: 600, margin: "0 auto" }}>
+      <h1>Todo App</h1>
+      <TodoForm onAdd={addTodo} />
+      <TodoList todos={todos} onToggle={toggleTodo} onDelete={deleteTodo} />
     </div>
   );
 }
